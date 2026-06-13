@@ -8,6 +8,16 @@ Built with [SimpleFOC 2.3.3](https://simplefoc.com) and [PlatformIO](https://pla
 
 ---
 
+## Where to Buy
+
+| Component | Taobao | AliExpress | Amazon |
+|-----------|--------|------------|--------|
+| SimpleFOC Mini (DRV8313) | [Taobao](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | — | — |
+| 2805 motor + MT6701 encoder | [Taobao](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | — | — |
+| ESP32 Dev Module | — | [AliExpress](https://www.aliexpress.com/item/32790946216.html) | [Amazon](https://www.amazon.com/AITRIP-ESP-WROOM-32-Development-Bluetooth-ESP32-DevKitC-32/dp/B0BHWP2628) |
+
+---
+
 ## Hardware Required
 
 | Component | Details |

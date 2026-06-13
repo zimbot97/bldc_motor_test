@@ -8,6 +8,16 @@
 
 ---
 
+## 购买链接
+
+| 组件 | 淘宝 | AliExpress | Amazon |
+|------|------|------------|--------|
+| SimpleFOC Mini（DRV8313） | [淘宝](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | — | — |
+| 2805 电机 + MT6701 编码器 | [淘宝](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | — | — |
+| ESP32 开发板 | — | [AliExpress](https://www.aliexpress.com/item/32790946216.html) | [Amazon](https://www.amazon.com/AITRIP-ESP-WROOM-32-Development-Bluetooth-ESP32-DevKitC-32/dp/B0BHWP2628) |
+
+---
+
 ## 所需硬件
 
 | 组件 | 说明 |
