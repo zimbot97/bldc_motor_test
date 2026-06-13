@@ -12,8 +12,8 @@
 
 | 组件 | 淘宝 | AliExpress | Amazon |
 |------|------|------------|--------|
-| SimpleFOC Mini（DRV8313） | [淘宝](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | — | — |
-| 2805 电机 + MT6701 编码器 | [淘宝](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | — | — |
+| SimpleFOC Mini（DRV8313） | [淘宝](https://item.taobao.com/item.htm?id=837317616752&mi_id=0000YVGEu30zyA7Uvs_Vt62DVpf9Zm-6USKcl3YBk9A2ByE&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | [AliExpress](https://www.aliexpress.com/item/1005005137437532.html) | [Amazon](https://www.amazon.com/dp/B0GDW57QXS) |
+| 2805 电机 + MT6701 编码器 | [淘宝](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | [AliExpress](https://www.aliexpress.com/item/3256808634709468.html) | [Amazon](https://www.amazon.com/Brushless-Outrunner-Magnetic-SimpleFOC-Supported/dp/B0GJCJKPQP) |
 | ESP32 开发板 | — | [AliExpress](https://www.aliexpress.com/item/32790946216.html) | [Amazon](https://www.amazon.com/AITRIP-ESP-WROOM-32-Development-Bluetooth-ESP32-DevKitC-32/dp/B0BHWP2628) |
 
 ---
@@ -118,6 +118,8 @@ MOT: Ready.
 
 ## 图形控制界面
 
+![Motor UI](pic/motor_ui.png)
+
 启动图形控制面板：
 
 ```bash
@@ -178,3 +180,47 @@ python3 motor_ui.py
 - **SimpleFOC 版本已锁定为 2.3.3** — 2.4.0 及以上版本需要 ESP-IDF 5.x，与当前工具链不兼容。请勿修改 `platformio.ini` 中的版本号，除非同时升级平台。
 - **电压限制设为 4V** — 针对此电机较为保守（Rs = 2.55 欧姆，峰值约 1.6A）。调试时可使用 `ML` 指令逐步提高。
 - **故障引脚未使用 GPIO 35** — ESP32 的 GPIO 34/35/36/39 仅支持输入，不支持内部上拉。因此故障引脚改用 GPIO 4。
+
+---
+
+## 为什么不用 Arduino UNO — FOC 循环频率问题
+
+Arduino UNO 常见于入门级 FOC 项目，但在较高转速下会导致严重的电机抖动，原因如下：
+
+| | Arduino UNO | ESP32（本项目） |
+|-|-------------|----------------|
+| 主频 | 16 MHz | 240 MHz |
+| 典型 FOC 循环频率 | 800 – 1500 Hz | 10,000 – 20,000 Hz |
+| 推荐最低频率 | > 5000 Hz | > 5000 Hz |
+
+**为什么循环频率对这个电机很重要：**
+
+在额定转速 2600 RPM、7 极对数的情况下：
+
+```
+电气频率 = (2600 / 60) × 7 = 303 Hz
+所需最低 FOC 循环频率 = 303 × 10 = 约 3000 Hz
+```
+
+UNO 的循环频率仅能达到 1500 Hz 左右，低于所需最低值，导致时序错误、转动不稳定以及高速下扭矩损失。
+
+**ESP32 主频 240 MHz，可轻松维持 10,000 Hz 以上的循环频率**，在全速范围内实现平滑稳定的 FOC 控制。如果在其他平台上遇到抖动问题，首先检查 FOC 循环频率——这是最常被忽视的原因。
+
+推荐替代 UNO 的平台：**ESP32**、STM32 Nucleo、Teensy 4.x。
+
+---
+
+## MT6701 输出模式说明
+
+MT6701 **出厂默认为 ABZ 模式**，共支持四种输出协议，适用于不同应用场景：
+
+| 模式 | 信号类型 | 所需引线 | 优点 | 缺点 |
+|------|---------|---------|------|------|
+| **ABZ**（默认出厂） | 增量式正交编码 + 索引脉冲 | A、B、Z | 简单，任意带中断的单片机均可使用 | 上电后无绝对位置，需要索引搜索 |
+| **SPI** | 数字串行（SSI） | CS、CLK、MISO | 绝对位置，分辨率高（14 位） | 需要 SPI 总线，接线略多 |
+| **UVW** | 三相换相信号 | U、V、W | 可直接输入部分电机驱动器 | 分辨率低，仅用于换相 |
+| **PWM** | 单线脉宽调制 | 1 根 | 接线最少 | 更新率慢，精度较低 |
+
+**本项目使用 ABZ 模式**，因为 MT6701 出厂即为该模式，无需额外配置。索引脉冲（Z）使 SimpleFOC 能够在启动时找到绝对零点参考，这也是电机在对齐阶段会短暂旋转的原因。
+
+如需切换输出模式，须通过 MT6701 的 I2C 配置接口写入其 EEPROM 寄存器。详情请参考 [MT6701 数据手册](https://www.magntek.com.cn/upload/MT6701_Rev.1.8.pdf)。

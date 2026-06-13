@@ -12,8 +12,8 @@ Built with [SimpleFOC 2.3.3](https://simplefoc.com) and [PlatformIO](https://pla
 
 | Component | Taobao | AliExpress | Amazon |
 |-----------|--------|------------|--------|
-| SimpleFOC Mini (DRV8313) | [Taobao](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | — | — |
-| 2805 motor + MT6701 encoder | [Taobao](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | — | — |
+| SimpleFOC Mini (DRV8313) | [Taobao](https://item.taobao.com/item.htm?id=837317616752&mi_id=0000YVGEu30zyA7Uvs_Vt62DVpf9Zm-6USKcl3YBk9A2ByE&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | [AliExpress](https://www.aliexpress.com/item/1005005137437532.html) | [Amazon](https://www.amazon.com/dp/B0GDW57QXS) |
+| 2805 motor + MT6701 encoder | [Taobao](https://item.taobao.com/item.htm?id=643573104607&mi_id=000004adwHpYAu8ZHWrjlCJiLuOUTJfm-yCR4iu7k9HKmOw&spm=tbpc.boughtlist.suborder_itemtitle.1.67e02e8d5bJByI) | [AliExpress](https://www.aliexpress.com/item/3256808634709468.html) | [Amazon](https://www.amazon.com/Brushless-Outrunner-Magnetic-SimpleFOC-Supported/dp/B0GJCJKPQP) |
 | ESP32 Dev Module | — | [AliExpress](https://www.aliexpress.com/item/32790946216.html) | [Amazon](https://www.amazon.com/AITRIP-ESP-WROOM-32-Development-Bluetooth-ESP32-DevKitC-32/dp/B0BHWP2628) |
 
 ---
@@ -120,6 +120,8 @@ To reset at any time, press the **EN** button on the ESP32 board.
 
 ## Motor UI
 
+![Motor UI](pic/motor_ui.png)
+
 Launch the graphical control panel:
 
 ```bash
@@ -180,3 +182,47 @@ Commands can be typed in the UI manual command box or sent from any serial termi
 - **SimpleFOC 2.3.3 is pinned** — version 2.4.0 and above requires ESP-IDF 5.x, which is incompatible with the current toolchain. Do not change the version in `platformio.ini` without also updating the platform.
 - **voltage_limit is set to 4V** — conservative for this motor (Rs = 2.55 ohm, ~1.6A peak). Increase gradually with the `ML` command when tuning.
 - **GPIO 35 is not used for the fault pin** — GPIO 34/35/36/39 on ESP32 are input-only and do not support internal pull-ups. The fault pin is on GPIO 4 instead.
+
+---
+
+## Why Not Arduino UNO — FOC Loop Rate
+
+Arduino UNO is often used in beginner FOC projects but causes serious motor stutter at higher speeds. Here is why:
+
+| | Arduino UNO | ESP32 (this project) |
+|-|-------------|----------------------|
+| Clock speed | 16 MHz | 240 MHz |
+| Typical FOC loop rate | 800 – 1500 Hz | 10,000 – 20,000 Hz |
+| Minimum recommended rate | > 5000 Hz | > 5000 Hz |
+
+**Why loop rate matters for this motor:**
+
+At the rated speed of 2600 RPM with 7 pole pairs:
+
+```
+Electrical frequency = (2600 / 60) × 7 = 303 Hz
+Minimum FOC loop rate = 303 × 10 = ~3000 Hz
+```
+
+The UNO barely reaches 1500 Hz, which is below the minimum needed. The result is timing errors, jerky rotation, and loss of torque at higher speeds.
+
+**ESP32 at 240 MHz easily sustains 10,000+ Hz**, giving clean and stable FOC control across the full speed range. If you experience stutter on another platform, check the FOC loop rate first — it is the most commonly overlooked cause.
+
+Recommended alternatives to UNO: **ESP32**, STM32 Nucleo, Teensy 4.x.
+
+---
+
+## MT6701 Output Modes
+
+The MT6701 ships in **ABZ mode by default**. It supports four output protocols, each suited to different use cases:
+
+| Mode | Signal type | Wires needed | Pros | Cons |
+|------|-------------|--------------|------|------|
+| **ABZ** *(default)* | Incremental quadrature + index | A, B, Z | Simple, works with any MCU interrupt | No absolute position on power-up, needs index search |
+| **SPI** | Digital serial (SSI) | CS, CLK, MISO | Absolute position, high resolution (14-bit) | Requires SPI bus, slightly more wiring |
+| **UVW** | 3-phase commutation signals | U, V, W | Direct input to some motor drivers | Low resolution, limited to commutation only |
+| **PWM** | Single-wire pulse width | 1 wire | Fewest wires | Slow update rate, lower accuracy |
+
+**This project uses ABZ** because the MT6701 ships in this mode out of the box and no reconfiguration is needed. The index (Z) pulse allows SimpleFOC to find the absolute zero reference on startup, which is why the motor briefly rotates during the alignment phase.
+
+To switch output mode, the MT6701 must be reprogrammed via its I2C configuration interface using its EEPROM registers. Refer to the [MT6701 datasheet](https://www.magntek.com.cn/upload/MT6701_Rev.1.8.pdf) for details.
